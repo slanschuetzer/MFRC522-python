@@ -70,7 +70,7 @@ class StringMFRC522:
             logging.debug('read')
             if block:
                 data += block
-                logging.debug('read %s', block)
+                logging.debug('read %s', str(block))
         if data:
              text_read = ''.join(chr(i) for i in data)
     self.READER.MFRC522_StopCrypto1()
