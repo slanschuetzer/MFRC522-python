@@ -1,12 +1,13 @@
 # Code by Simon Monk https://github.com/simonmonk/
 # Adaption by Stefan Lanschützer https://github.com/slanschuetzer/
 
-# Just needed a possiblity to store more data onto my mifare-classic-cards, than fits on one sector.
+# Just needed a possibility to store more data onto my mifare-classic-cards, than fits on one sector.
 # In fact i only need to store one big string (c-like terminated by 0x00)
 # This library seemed to be easily adaptable to my needs.
 
 from . import MFRC522
 import RPi.GPIO as GPIO
+import logging, sys
   
 class StringMFRC522:
 
@@ -19,6 +20,7 @@ class StringMFRC522:
   
   def __init__(self):
     self.READER = MFRC522()
+    logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
   
   def read(self):
       id, text = self.read_no_block()
@@ -50,14 +52,22 @@ class StringMFRC522:
         return None, None
     id = self.uid_to_num(uid)
     self.READER.MFRC522_SelectTag(uid)
-    status = self.READER.MFRC522_Auth(self.READER.PICC_AUTHENT1A, 11, self.KEY, uid)
+    curr_block = self.BLOCK_ADDRS[0]
+    curr_auth = curr_block - curr_block % 4 + 3
+    status = self.READER.MFRC522_Auth(self.READER.PICC_AUTHENT1A, curr_auth, self.KEY, uid)
     data = []
     text_read = ''
     if status == self.READER.MI_OK:
         for block_num in self.BLOCK_ADDRS:
+            logging.debug('Reading Block %d oldAuth %d requiredAuth %d',block_num, curr_auth, (block_num - block_num % 4 + 3))
+            if curr_auth != block_num - block_num % 4 + 3:
+                status = self.READER.MFRC522_Auth(self.READER.PICC_AUTHENT1A, curr_auth, self.KEY, uid)
+                # self.READER.MFRC522_Read(curr_auth)
+                if status != self.READER.MI_OK:
+                  return None, None
             block = self.READER.MFRC522_Read(block_num) 
             if block:
-            		data += block
+                data += block
         if data:
              text_read = ''.join(chr(i) for i in data)
     self.READER.MFRC522_StopCrypto1()
@@ -78,15 +88,24 @@ class StringMFRC522:
           return None, None
       id = self.uid_to_num(uid)
       self.READER.MFRC522_SelectTag(uid)
-      status = self.READER.MFRC522_Auth(self.READER.PICC_AUTHENT1A, 11, self.KEY, uid)
-      self.READER.MFRC522_Read(11)
+      curr_block = self.BLOCK_ADDRS[0]
+      curr_auth = curr_block - curr_block % 4 + 3
+      status = self.READER.MFRC522_Auth(self.READER.PICC_AUTHENT1A, curr_auth, self.KEY, uid)
+      self.READER.MFRC522_Read(curr_auth)
       if status == self.READER.MI_OK:
           data = bytearray()
           data.extend(bytearray(text.ljust(len(self.BLOCK_ADDRS) * 16,chr(0)).encode('ascii')))
           i = 0
           for block_num in self.BLOCK_ADDRS:
             # TODO: here we should authenticate to the new sector on sector-change.
-            self.READER.MFRC522_Write(block_num, data[(i*16):(i+1)*16])
+
+            if curr_auth != block_num - block_num % 4 + 3:
+                status = self.READER.MFRC522_Auth(self.READER.PICC_AUTHENT1A, curr_auth, self.KEY, uid)
+                self.READER.MFRC522_Read(curr_auth)
+                if status != self.READER.MI_OK:
+                  return None, None
+
+            #self.READER.MFRC522_Write(block_num, data[(i*16):(i+1)*16])
             i += 1
       self.READER.MFRC522_StopCrypto1()
       return id, text[0:(len(self.BLOCK_ADDRS) * 16)]
