@@ -102,14 +102,15 @@ class StringMFRC522:
           i = 0
           for block_num in self.BLOCK_ADDRS:
             # TODO: here we should authenticate to the new sector on sector-change.
-
-            if curr_auth != block_num - block_num % 4 + 3:
-                status = self.READER.MFRC522_Auth(self.READER.PICC_AUTHENT1A, curr_auth, self.KEY, uid)
+            new_auth = (block_num - block_num % 4 + 3)
+            if curr_auth != new_auth:
+                status = self.READER.MFRC522_Auth(self.READER.PICC_AUTHENT1A, new_auth, self.KEY, uid)
                 #self.READER.MFRC522_Read(curr_auth)
                 if status != self.READER.MI_OK:
                   return None, None
+                curr_auth = new_auth
 
-            #self.READER.MFRC522_Write(block_num, data[(i*16):(i+1)*16])
+            self.READER.MFRC522_Write(block_num, data[(i*16):(i+1)*16])
             i += 1
       self.READER.MFRC522_StopCrypto1()
       return id, text[0:(len(self.BLOCK_ADDRS) * 16)]
