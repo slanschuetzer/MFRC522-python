@@ -65,6 +65,7 @@ class StringMFRC522:
                 # self.READER.MFRC522_Read(curr_auth)
                 if status != self.READER.MI_OK:
                   return None, None
+                curr_auth = block_num - block_num % 4 + 3
             block = self.READER.MFRC522_Read(block_num) 
             if block:
                 data += block
@@ -101,7 +102,7 @@ class StringMFRC522:
 
             if curr_auth != block_num - block_num % 4 + 3:
                 status = self.READER.MFRC522_Auth(self.READER.PICC_AUTHENT1A, curr_auth, self.KEY, uid)
-                self.READER.MFRC522_Read(curr_auth)
+                #self.READER.MFRC522_Read(curr_auth)
                 if status != self.READER.MI_OK:
                   return None, None
 
