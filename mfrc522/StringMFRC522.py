@@ -59,13 +59,14 @@ class StringMFRC522:
     text_read = ''
     if status == self.READER.MI_OK:
         for block_num in self.BLOCK_ADDRS:
-            logging.debug('Reading Block %d oldAuth %d requiredAuth %d',block_num, curr_auth, (block_num - block_num % 4 + 3))
-            if curr_auth != block_num - block_num % 4 + 3:
-                status = self.READER.MFRC522_Auth(self.READER.PICC_AUTHENT1A, curr_auth, self.KEY, uid)
+            new_auth = (block_num - block_num % 4 + 3)
+            logging.debug('Reading Block %d oldAuth %d requiredAuth %d',block_num, curr_auth, new_auth)
+            if curr_auth != new_auth:
+                status = self.READER.MFRC522_Auth(self.READER.PICC_AUTHENT1A, new_auth, self.KEY, uid)
                 # self.READER.MFRC522_Read(curr_auth)
                 if status != self.READER.MI_OK:
                   return None, None
-                curr_auth = block_num - block_num % 4 + 3
+                curr_auth = new_auth
             block = self.READER.MFRC522_Read(block_num)
             logging.debug('read')
             if block:
