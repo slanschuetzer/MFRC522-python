@@ -66,9 +66,11 @@ class StringMFRC522:
                 if status != self.READER.MI_OK:
                   return None, None
                 curr_auth = block_num - block_num % 4 + 3
-            block = self.READER.MFRC522_Read(block_num) 
+            block = self.READER.MFRC522_Read(block_num)
+            logging.debug('read')
             if block:
                 data += block
+                logging.debug('read %s', *block)
         if data:
              text_read = ''.join(chr(i) for i in data)
     self.READER.MFRC522_StopCrypto1()
